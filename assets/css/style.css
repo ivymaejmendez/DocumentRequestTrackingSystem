@@ -1,0 +1,4 @@
+body { background:#f5f7fb; }
+.card { border:0; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+.stat { font-size:2rem; font-weight:700; }
+.table td, .table th { vertical-align:middle; }
