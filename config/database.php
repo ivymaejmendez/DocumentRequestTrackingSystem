@@ -38,5 +38,9 @@ $options = [
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (PDOException $e) {
+    if (PHP_SAPI === 'cli') {
+        fwrite(STDERR, 'Database connection failed: ' . $e->getMessage() . PHP_EOL);
+        exit(1);
+    }
     exit('Database connection failed: ' . htmlspecialchars($e->getMessage()));
 }

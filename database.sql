@@ -46,8 +46,8 @@ CREATE TABLE request_status_history (
 );
 
 INSERT INTO users(name,email,password,role) VALUES
-('System Administrator','admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC7GqY0l6cX8fYpQeS2', 'admin'),
-('Demo User','user@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC7GqY0l6cX8fYpQeS2', 'user');
+('System Administrator','admin@example.com', '$2y$10$.wWDlEeg1t.yWhae3rdMre3MgmjnYX2z.vWrJ.sN4jLRfd..PBFYq', 'admin'),
+('Demo User','user@example.com', '$2y$10$.wWDlEeg1t.yWhae3rdMre3MgmjnYX2z.vWrJ.sN4jLRfd..PBFYq', 'user');
 
 INSERT INTO document_types(name,description,processing_days) VALUES
 ('Certificate of Enrollment','Proof of current enrollment',3),

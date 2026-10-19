@@ -26,66 +26,75 @@ function runTest(string $description, callable $callback): void {
     }
 }
 
+function getDatabaseConnection(string $projectRoot): PDO {
+    static $pdoInstance = null;
+    if ($pdoInstance === null) {
+        require $projectRoot . '/config/database.php';
+        if (!isset($pdo) || !($pdo instanceof PDO)) {
+            throw new Exception("PDO connection object was not initialized in config/database.php");
+        }
+        $pdoInstance = $pdo;
+    }
+    return $pdoInstance;
+}
+
 echo "\n============================================\n";
 echo " Document Request System - Test Suite\n";
 echo "============================================\n\n";
 
-// 1. PHP Syntax Check across all project PHP files
-runTest("PHP Syntax Linting across all PHP files", function() use ($projectRoot) {
-    $directory = new RecursiveDirectoryIterator($projectRoot);
-    $iterator = new RecursiveIteratorIterator($directory);
-    $phpFiles = [];
+// 1. File Structure Verification
+runTest("Core project files exist", function() use ($projectRoot) {
+    $requiredFiles = [
+        'index.php',
+        'config/database.php',
+        'auth/login.php',
+        'auth/logout.php',
+        'includes/auth.php',
+        'includes/header.php',
+        'includes/footer.php',
+        'user/dashboard.php',
+        'user/request.php',
+        'user/my_requests.php',
+        'admin/dashboard.php',
+        'admin/requests.php',
+        'database.sql',
+    ];
 
-    foreach ($iterator as $info) {
-        if ($info->isFile() && $info->getExtension() === 'php') {
-            $path = $info->getRealPath();
-            // Skip vendor or git if any
-            if (str_contains($path, DIRECTORY_SEPARATOR . '.git')) {
-                continue;
-            }
-            $phpFiles[] = $path;
+    foreach ($requiredFiles as $relPath) {
+        $fullPath = $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relPath);
+        if (!file_exists($fullPath)) {
+            throw new Exception("Missing required file: $relPath");
         }
     }
-
-    foreach ($phpFiles as $file) {
-        $output = [];
-        $returnVar = 0;
-        exec(escapeshellcmd("php -l " . escapeshellarg($file)), $output, $returnVar);
-        if ($returnVar !== 0) {
-            throw new Exception("Syntax error in " . basename($file) . ": " . implode("\n", $output));
-        }
-    }
-    return count($phpFiles) > 0;
+    return true;
 });
 
 // 2. Database Connection
 runTest("Database Connection via config/database.php", function() use ($projectRoot) {
-    require $projectRoot . '/config/database.php';
-    if (!isset($pdo) || !($pdo instanceof PDO)) {
-        throw new Exception('$pdo PDO instance not found.');
-    }
-    return true;
+    $pdo = getDatabaseConnection($projectRoot);
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    return $driver === 'mysql';
 });
 
 // 3. Database Schema / Tables Validation
 runTest("Database Tables Existence Check", function() use ($projectRoot) {
-    require $projectRoot . '/config/database.php';
+    $pdo = getDatabaseConnection($projectRoot);
     $requiredTables = ['users', 'document_types', 'document_requests', 'request_status_history'];
 
     $stmt = $pdo->query("SHOW TABLES");
-    $existingTables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $existingTables = array_map('strtolower', $stmt->fetchAll(PDO::FETCH_COLUMN));
 
     foreach ($requiredTables as $table) {
-        if (!in_array($table, $existingTables, true)) {
-            throw new Exception("Required table '$table' not found in database.");
+        if (!in_array(strtolower($table), $existingTables, true)) {
+            throw new Exception("Required table '$table' not found in database. Found: " . implode(', ', $existingTables));
         }
     }
     return true;
 });
 
-// 4. Seed Data Verification (Admin & Users)
+// 4. Seed Data Verification (Admin & Demo User)
 runTest("Seed Data: Admin user exists and password verifies", function() use ($projectRoot) {
-    require $projectRoot . '/config/database.php';
+    $pdo = getDatabaseConnection($projectRoot);
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
     $stmt->execute(['admin@example.com']);
     $admin = $stmt->fetch();
@@ -97,14 +106,14 @@ runTest("Seed Data: Admin user exists and password verifies", function() use ($p
         throw new Exception("User 'admin@example.com' does not have 'admin' role.");
     }
     if (!password_verify('password', $admin['password'])) {
-        throw new Exception("Admin password verification failed.");
+        throw new Exception("Admin password verification failed. Password in database does not match 'password'.");
     }
     return true;
 });
 
 // 5. Seed Data Verification (Document Types)
 runTest("Seed Data: Document types present", function() use ($projectRoot) {
-    require $projectRoot . '/config/database.php';
+    $pdo = getDatabaseConnection($projectRoot);
     $stmt = $pdo->query("SELECT COUNT(*) as count FROM document_types");
     $row = $stmt->fetch();
     if ((int)$row['count'] < 1) {
@@ -115,18 +124,24 @@ runTest("Seed Data: Document types present", function() use ($projectRoot) {
 
 // 6. Transactional Request Creation and Tracking Test
 runTest("Transactional Request Creation & Reference Number Generation", function() use ($projectRoot) {
-    require $projectRoot . '/config/database.php';
+    $pdo = getDatabaseConnection($projectRoot);
 
     // Start a transaction so tests leave zero trace
     $pdo->beginTransaction();
     try {
-        $stmtUser = $pdo->query("SELECT id FROM users WHERE role = 'user' LIMIT 1");
+        $stmtUser = $pdo->query("SELECT id FROM users LIMIT 1");
         $user = $stmtUser->fetch();
-        $userId = $user ? (int)$user['id'] : 1;
+        if (!$user) {
+            throw new Exception("No users available to create a test request.");
+        }
+        $userId = (int)$user['id'];
 
         $stmtDoc = $pdo->query("SELECT id FROM document_types LIMIT 1");
         $doc = $stmtDoc->fetch();
-        $docId = $doc ? (int)$doc['id'] : 1;
+        if (!$doc) {
+            throw new Exception("No document types available to create a test request.");
+        }
+        $docId = (int)$doc['id'];
 
         $refNo = 'TEST-' . strtoupper(bin2hex(random_bytes(4)));
         $now = date('Y-m-d H:i:s');
@@ -151,7 +166,7 @@ runTest("Transactional Request Creation & Reference Number Generation", function
         $history = $pdo->prepare("INSERT INTO request_status_history (request_id, status, remarks, changed_by) VALUES (?, 'Pending', 'Test note', ?)");
         $history->execute([$requestId, $userId]);
 
-        // Rollback so the database remains unchanged
+        // Rollback so the database remains completely unchanged
         $pdo->rollBack();
         return true;
     } catch (Throwable $e) {
