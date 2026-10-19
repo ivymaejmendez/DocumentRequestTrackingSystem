@@ -1,0 +1,110 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =============================================================
+  # Continuous Integration (Linting, Schema Import & Smoke Tests)
+  # =============================================================
+  ci:
+    name: CI - Lint, Test & Validate
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: document_request_system
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP Environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+          extensions: pdo, pdo_mysql, mbstring
+          tools: php-cs-fixer, phpunit
+
+      - name: Lint PHP Syntax
+        run: |
+          echo "Checking PHP syntax across all files..."
+          find . -type f -name "*.php" -not -path "./.git/*" -exec php -l {} +
+
+      - name: Import Database Schema
+        run: |
+          echo "Importing database.sql into MySQL service container..."
+          mysql -h 127.0.0.1 -P 3306 -u root -prootpassword document_request_system < database.sql
+          echo "Database schema imported successfully."
+
+      - name: Run Automated Smoke Tests
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: document_request_system
+          DB_USER: root
+          DB_PASS: rootpassword
+          DB_CHARSET: utf8mb4
+        run: |
+          php tests/smoke_test.php
+
+  # =============================================================
+  # Continuous Deployment (FTP / FTPS / SFTP to Shared Hosting)
+  # =============================================================
+  cd:
+    name: CD - Deploy to Hosting (FTP)
+    needs: ci
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Validate Deployment Secrets
+        id: secrets_check
+        run: |
+          if [ -z "${{ secrets.FTP_SERVER }}" ] || [ -z "${{ secrets.FTP_USERNAME }}" ] || [ -z "${{ secrets.FTP_PASSWORD }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "::warning title=FTP Secrets Missing::FTP deployment secrets are not configured. To enable automated deployment, navigate to Repository Settings -> Secrets and variables -> Actions and add FTP_SERVER, FTP_USERNAME, and FTP_PASSWORD."
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "FTP deployment secrets detected."
+          fi
+
+      - name: Deploy to Server via FTP / FTPS
+        if: steps.secrets_check.outputs.configured == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR || 'public_html/' }}
+          port: ${{ secrets.FTP_PORT || 21 }}
+          protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github*/**
+            **/tests/**
+            **/database.sql
+            **/README.md
+            **/CI_CD_GUIDE.md
+            **/.env.example
+            **/*.md
