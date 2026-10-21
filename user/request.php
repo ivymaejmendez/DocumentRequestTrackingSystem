@@ -4,7 +4,7 @@ require_once __DIR__ . '/../includes/auth.php';
 require_login();
 
 if ($_SESSION['user']['role'] === 'admin') {
-    header('Location:/document-request-system/admin/dashboard.php');
+    header('Location: ' . app_url('admin/dashboard.php'));
     exit;
 }
 if (empty($_SESSION['csrf_new'])) $_SESSION['csrf_new'] = bin2hex(random_bytes(16));

@@ -1,24 +1,24 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
-$title = $title ?? 'Document Request System';
+require_once __DIR__ . '/auth.php';
 
-$base    = '/document-request-system';
-$user    = $_SESSION['user'] ?? null;
+$title  = $title ?? 'Document Request Tracking System';
+$base   = app_base();
+$user   = $_SESSION['user'] ?? null;
 $isAdmin = $user && ($user['role'] ?? '') === 'admin';
 
-/* Which page are we on? e.g. "admin/requests.php" */
 $here = basename(dirname($_SERVER['SCRIPT_NAME'])) . '/' . basename($_SERVER['SCRIPT_NAME']);
 
 $menu = $isAdmin
     ? [
-        ['admin/dashboard.php', "$base/admin/dashboard.php", 'bi-speedometer2', 'Dashboard'],
-        ['admin/requests.php',  "$base/admin/requests.php",  'bi-folder2-open', 'Requests'],
-        ['admin/residents.php', "$base/admin/residents.php", 'bi-people',       'Residents'],
+        ['admin/dashboard.php', app_url('admin/dashboard.php'), 'bi-speedometer2', 'Dashboard'],
+        ['admin/requests.php',  app_url('admin/requests.php'),  'bi-folder2-open', 'Requests'],
+        ['admin/residents.php', app_url('admin/residents.php'), 'bi-people',       'Residents'],
       ]
     : [
-        ['user/dashboard.php',   "$base/user/dashboard.php",   'bi-house',        'Dashboard'],
-        ['user/request.php',     "$base/user/request.php",     'bi-plus-circle',  'Request a document'],
-        ['user/my_requests.php', "$base/user/my_requests.php", 'bi-list-check',   'My requests'],
+        ['user/dashboard.php',   app_url('user/dashboard.php'),   'bi-house',        'Dashboard'],
+        ['user/request.php',     app_url('user/request.php'),     'bi-plus-circle',  'Request a document'],
+        ['user/my_requests.php', app_url('user/my_requests.php'), 'bi-list-check',   'My requests'],
       ];
 ?>
 <!doctype html>
@@ -48,7 +48,7 @@ $menu = $isAdmin
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark site-nav">
 <div class="container">
-    <a class="navbar-brand" href="<?= $base ?>/">Barangay Document Requests</a>
+    <a class="navbar-brand" href="<?= app_url() ?>">Barangay Document Requests</a>
 
     <?php if ($user): ?>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteMenu"
@@ -58,25 +58,28 @@ $menu = $isAdmin
 
     <div class="collapse navbar-collapse" id="siteMenu">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
-            <?php foreach ($menu as [$key, $href, $icon, $label]): ?>
-                <li class="nav-item">
-                    <a class="nav-link <?= $here === $key ? 'active' : '' ?>" href="<?= $href ?>"
-                       <?= $here === $key ? 'aria-current="page"' : '' ?>>
-                        <i class="bi <?= $icon ?> me-1"></i><?= $label ?>
-                    </a>
-                </li>
+            <?php foreach ($menu as [$rel, $href, $icon, $label]): ?>
+            <li class="nav-item">
+                <a class="nav-link <?= str_ends_with($here, $rel) ? 'active' : '' ?>"
+                   href="<?= htmlspecialchars($href) ?>">
+                    <i class="bi <?= $icon ?>"></i> <?= htmlspecialchars($label) ?>
+                </a>
+            </li>
             <?php endforeach; ?>
         </ul>
-
         <div class="d-flex align-items-center gap-3">
             <span class="who">
-                <?= htmlspecialchars($user['name'] ?? 'Account') ?>
+                <?= htmlspecialchars($user['name'] ?? 'User') ?>
                 <small><?= $isAdmin ? 'Administrator' : 'Resident' ?></small>
             </span>
-            <a class="btn btn-logout btn-sm" href="<?= $base ?>/auth/logout.php">Logout</a>
+            <a href="<?= app_url('auth/logout.php') ?>" class="btn btn-logout btn-sm">Log out</a>
         </div>
+    </div>
+    <?php else: ?>
+    <div class="ms-auto d-flex gap-2">
+        <a href="<?= app_url('auth/login.php') ?>" class="btn btn-logout btn-sm">Log in</a>
     </div>
     <?php endif; ?>
 </div>
 </nav>
-<main class="container py-4">
+<div class="container py-4">

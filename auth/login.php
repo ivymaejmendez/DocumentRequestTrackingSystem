@@ -3,8 +3,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-$base = '/document-request-system';
-$home = fn(array $u): string => $base . '/' . (($u['role'] ?? '') === 'admin' ? 'admin' : 'user') . '/dashboard.php';
+$home = fn(array $u): string => app_url(($u['role'] ?? '') === 'admin' ? 'admin/dashboard.php' : 'user/dashboard.php');
 
 if (!empty($_SESSION['user'])) {
     header('Location: ' . $home($_SESSION['user']));

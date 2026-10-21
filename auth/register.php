@@ -1,10 +1,11 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../includes/auth.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 /* Already signed in? Go to the right dashboard. */
 if (!empty($_SESSION['user'])) {
-    header('Location:/document-request-system/' . (($_SESSION['user']['role'] ?? '') === 'admin' ? 'admin' : 'user') . '/dashboard.php');
+    header('Location: ' . app_url(($_SESSION['user']['role'] ?? '') === 'admin' ? 'admin/dashboard.php' : 'user/dashboard.php'));
     exit;
 }
 if (empty($_SESSION['csrf_reg'])) $_SESSION['csrf_reg'] = bin2hex(random_bytes(16));
@@ -77,7 +78,7 @@ if (!$missing && $_SERVER['REQUEST_METHOD'] === 'POST') {
             session_regenerate_id(true);
             $_SESSION['user'] = ['id' => $newId, 'name' => $old['name'], 'email' => $old['email'], 'role' => $residentRole];
             unset($_SESSION['csrf_reg']);
-            header('Location:/document-request-system/user/dashboard.php');
+            header('Location: ' . app_url('user/dashboard.php'));
             exit;
         } catch (PDOException $e) {
             error_log('register.php insert failed: ' . $e->getMessage());
