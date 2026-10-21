@@ -1,7 +1,7 @@
-CREATE DATABASE IF NOT EXISTS document_request_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE document_request_system;
+-- Database Schema & Seed Data
+-- Note: On shared hosting (e.g. InfinityFree / cPanel), select your assigned database in phpMyAdmin before importing.
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
  id INT AUTO_INCREMENT PRIMARY KEY,
  name VARCHAR(150) NOT NULL,
  email VARCHAR(190) NOT NULL UNIQUE,
@@ -10,7 +10,7 @@ CREATE TABLE users (
  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE document_types (
+CREATE TABLE IF NOT EXISTS document_types (
  id INT AUTO_INCREMENT PRIMARY KEY,
  name VARCHAR(150) NOT NULL,
  description TEXT,
@@ -18,7 +18,7 @@ CREATE TABLE document_types (
  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE document_requests (
+CREATE TABLE IF NOT EXISTS document_requests (
  id INT AUTO_INCREMENT PRIMARY KEY,
  reference_no VARCHAR(50) NOT NULL UNIQUE,
  user_id INT NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE document_requests (
  FOREIGN KEY (document_type_id) REFERENCES document_types(id)
 );
 
-CREATE TABLE request_status_history (
+CREATE TABLE IF NOT EXISTS request_status_history (
  id INT AUTO_INCREMENT PRIMARY KEY,
  request_id INT NOT NULL,
  status VARCHAR(50) NOT NULL,
