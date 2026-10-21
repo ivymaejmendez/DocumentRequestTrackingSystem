@@ -71,9 +71,32 @@ try {
         fwrite(STDERR, 'Database connection failed: ' . $e->getMessage() . PHP_EOL);
         exit(1);
     }
-    $msg = 'Database connection failed: ' . htmlspecialchars($e->getMessage());
-    if ($host === '127.0.0.1' || $host === 'localhost') {
-        $msg .= '<br><br><strong>Note:</strong> Database host is currently set to <code>' . htmlspecialchars($host) . '</code>. On hosting providers like InfinityFree, MySQL runs on a dedicated server (e.g. <code>sqlXXX.infinityfree.com</code>). Please configure your database credentials in <code>.env</code> or <code>config/database.local.php</code>.';
+    // If running setup.php directly, allow it to continue without terminating
+    if (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'setup.php') {
+        $pdo = null;
+        return;
     }
-    exit($msg);
+
+    $setupUrl = (dirname($_SERVER['SCRIPT_NAME'] ?? '') === '/' ? '' : dirname($_SERVER['SCRIPT_NAME'] ?? '')) . '/setup.php';
+    if (!str_starts_with($setupUrl, '/')) {
+        $setupUrl = '/' . $setupUrl;
+    }
+
+    echo '<!doctype html><html lang="en"><head><meta charset="utf-8">';
+    echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
+    echo '<title>Database Setup Required</title>';
+    echo '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">';
+    echo '</head><body class="bg-light p-3 p-md-5">';
+    echo '<div class="container" style="max-width: 600px; margin-top: 30px;">';
+    echo '<div class="card border-0 shadow-sm rounded-4 p-4 text-center">';
+    echo '<h3 class="text-danger fw-bold mb-3">Database Connection Required</h3>';
+    echo '<p class="text-muted mb-3">' . htmlspecialchars($e->getMessage()) . '</p>';
+    echo '<div class="alert alert-warning text-start small mb-4">';
+    echo '<strong>Current Host:</strong> <code>' . htmlspecialchars($host) . '</code><br>';
+    echo 'On <strong>InfinityFree</strong>, MySQL does not run on <code>127.0.0.1</code>. It runs on a dedicated server (e.g. <code>sqlXXX.infinityfree.com</code>).';
+    echo '</div>';
+    echo '<a href="' . htmlspecialchars($setupUrl) . '" class="btn btn-primary btn-lg w-100 fw-bold">Open Web Setup Wizard &rarr;</a>';
+    echo '<div class="mt-3"><small class="text-muted">Or visit: <code>' . htmlspecialchars($_SERVER['HTTP_HOST'] ?? 'yourdomain') . $setupUrl . '</code></small></div>';
+    echo '</div></div></body></html>';
+    exit;
 }

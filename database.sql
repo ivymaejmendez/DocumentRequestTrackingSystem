@@ -45,11 +45,11 @@ CREATE TABLE IF NOT EXISTS request_status_history (
  FOREIGN KEY (changed_by) REFERENCES users(id)
 );
 
-INSERT INTO users(name,email,password,role) VALUES
+INSERT IGNORE INTO users(name,email,password,role) VALUES
 ('System Administrator','admin@example.com', '$2y$10$.wWDlEeg1t.yWhae3rdMre3MgmjnYX2z.vWrJ.sN4jLRfd..PBFYq', 'admin'),
 ('Demo User','user@example.com', '$2y$10$.wWDlEeg1t.yWhae3rdMre3MgmjnYX2z.vWrJ.sN4jLRfd..PBFYq', 'user');
 
-INSERT INTO document_types(name,description,processing_days) VALUES
+INSERT IGNORE INTO document_types(name,description,processing_days) VALUES
 ('Certificate of Enrollment','Proof of current enrollment',3),
 ('Transcript of Records','Official academic transcript',5),
 ('Certificate of Good Moral','Good moral certificate',3),
