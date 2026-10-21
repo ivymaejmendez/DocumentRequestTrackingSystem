@@ -105,8 +105,9 @@ include __DIR__ . '/../includes/header.php';
             <button class="lg-go" type="submit">Log in</button>
         </form>
 
-        <p class="lg-alt">New resident? <a href="register.php">Create an account</a></p>
-    </section>
+       <p class="lg-alt" style="text-align: center;">
+    New resident? <a href="register.php">Create an account</a>
+</p>
 </div>
 
 <script>

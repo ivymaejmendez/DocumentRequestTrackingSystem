@@ -48,9 +48,19 @@ To enable automated deployment to your shared hosting / cPanel server, add the f
 | `FTP_SERVER` | Your host FTP/FTPS server domain or IP address | `ftp.yourdomain.com` or `192.0.2.1` |
 | `FTP_USERNAME` | Your FTP account username | `cpanel_user` or `deployer@yourdomain.com` |
 | `FTP_PASSWORD` | Your FTP account password | `YourStrongPassword123!` |
-| `FTP_SERVER_DIR` *(optional)* | Target directory on the server | `public_html/` or `public_html/document-request-system/` |
+| `FTP_SERVER_DIR` *(optional)* | Target directory on the server (Defaults to `htdocs/`) | `htdocs/` or `trackingsystem.infinityfree.io/htdocs/` |
 | `FTP_PORT` *(optional)* | FTP port (default: 21) | `21` |
-| `FTP_PROTOCOL` *(optional)* | Protocol to use (`ftp`, `ftps`, or `ftps-legacy`) | `ftp` or `ftps` |
+| `FTP_PROTOCOL` *(optional)* | Protocol to use (`ftp`, `ftps`, or `ftps-legacy`) | `ftp` |
+
+> [!IMPORTANT]
+> **InfinityFree Users (`trackingsystem.infinityfree.io`):**
+> InfinityFree does **NOT** use `public_html/`. It uses **`htdocs/`**!
+> 
+> Set your GitHub Secrets as follows:
+> - **`FTP_SERVER`**: `ftpupload.net` *(do NOT use your website URL here; use `ftpupload.net`)*
+> - **`FTP_USERNAME`**: Your InfinityFree hosting account username (starts with `if0_`, e.g., `if0_38123456`)
+> - **`FTP_PASSWORD`**: Your InfinityFree hosting account password *(found under "Account Details" > "Show Password" in your InfinityFree client area)*
+> - **`FTP_SERVER_DIR`**: `htdocs/` *(or `trackingsystem.infinityfree.io/htdocs/` if created as a separate domain folder)*
 
 > [!NOTE]
 > If these secrets are not yet added, the CI job will still run and test your code! The CD step will simply output a friendly notice and skip uploading until you are ready to configure the secrets.
